@@ -4,7 +4,8 @@
 //
 
 #if DEBUG
-import Foundation
+import AppKit
+import SwiftUI
 
 /// Debug builds only: launch straight into a sample state for design checks,
 /// without touching real data.
@@ -19,6 +20,39 @@ enum PreviewLaunch {
     /// read-only argument domain; nothing is stored.
     static var requestedState: String? {
         UserDefaults.standard.string(forKey: "WTPreviewState")
+    }
+
+    /// `-WTPreviewEffects YES` turns on the real notifications and chime.
+    static var wantsEffects: Bool {
+        UserDefaults.standard.bool(forKey: "WTPreviewEffects")
+    }
+
+    /// `-WTPreviewMode compact` or `mini` opens the floating panel at launch.
+    static var windowMode: WindowModes.Mode? {
+        switch UserDefaults.standard.string(forKey: "WTPreviewMode") {
+        case "compact": .compact
+        case "mini": .mini
+        default: nil
+        }
+    }
+
+    /// `-WTPreviewMode menu` shows the menu bar popover's content in a plain
+    /// window, for screenshots (the real popover only opens on a click).
+    static var showsMenuContent: Bool {
+        UserDefaults.standard.string(forKey: "WTPreviewMode") == "menu"
+    }
+
+    @MainActor private static var menuPreviewWindow: NSWindow?
+
+    @MainActor
+    static func showMenuContent(_ content: some View) {
+        let window = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: content)
+        window.title = "Menu preview"
+        window.setContentSize(window.contentView!.fittingSize)
+        window.center()
+        window.orderFrontRegardless()
+        menuPreviewWindow = window
     }
 
     static let task = "Implement checkout address validation"

@@ -14,6 +14,21 @@ enum AppSettings {
     static let lastTask = "lastTask"
     static let lastDuration = "lastDuration"
     static let customMinutes = "customMinutes"
+    static let notifyWhenDone = "notifyWhenDone"
+    static let endChime = "endChime"
+    static let showMenuBarTime = "showMenuBarTime"
+    static let compactFloatOnTop = "compactFloatOnTop"
+
+    /// Values used until the user changes them. `register` doesn't write
+    /// anything to disk; it only answers reads of keys that were never set.
+    static func registerDefaults(in defaults: UserDefaults) {
+        defaults.register(defaults: [
+            animateDigits: true,
+            notifyWhenDone: true,
+            endChime: EndChime.softBell.rawValue,
+            showMenuBarTime: true,
+        ])
+    }
 }
 
 /// Settings › Appearance › Theme. Dark is the design's primary appearance.
@@ -28,4 +43,9 @@ enum ThemeChoice: String, CaseIterable {
         case .light: .light
         }
     }
+}
+
+/// Settings › Sound › End chime.
+enum EndChime: String, CaseIterable {
+    case softBell, none
 }

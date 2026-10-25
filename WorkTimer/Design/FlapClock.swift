@@ -32,7 +32,7 @@ struct FlapClock: View {
 }
 
 /// How the clock is tinted for each timer state.
-struct FlapMood {
+struct FlapMood: Equatable {
     var tile: Color
     var digit: Color
     var colon: Color

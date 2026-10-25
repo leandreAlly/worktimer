@@ -8,6 +8,8 @@ import SwiftUI
 /// The main window: the 52 pt header and the screen for the current state.
 struct RootView: View {
     @Environment(TimerEngine.self) private var engine
+    @Environment(WindowModes.self) private var modes
+    @Environment(\.openWindow) private var openWindow
     @AppStorage(AppSettings.theme) private var theme = ThemeChoice.dark
     @AppStorage(AppSettings.floatOnTop) private var floatOnTop = false
 
@@ -27,6 +29,9 @@ struct RootView: View {
         .ignoresSafeArea()
         .background(WindowConfigurator(floatOnTop: floatOnTop))
         .preferredColorScheme(theme.colorScheme)
+        // Lets the menu bar and notifications reopen this window after the
+        // user has closed it.
+        .onAppear { modes.openMainWindow = { openWindow(id: MainWindow.id) } }
     }
 
     @ViewBuilder private var screen: some View {
@@ -45,6 +50,7 @@ struct RootView: View {
 /// quiet icon buttons on the right.
 private struct WindowHeader: View {
     @Environment(TimerEngine.self) private var engine
+    @Environment(WindowModes.self) private var modes
     @Binding var floatOnTop: Bool
 
     var body: some View {
@@ -61,6 +67,10 @@ private struct WindowHeader: View {
                                      label: floatOnTop ? "Keep on top (on)" : "Keep on top",
                                      isOn: floatOnTop) {
                         floatOnTop.toggle()
+                    }
+                    HeaderIconButton(systemImage: "arrow.down.right.and.arrow.up.left",
+                                     label: "Compact mode (⌘\\)") {
+                        modes.show(.compact)
                     }
                 }
             }

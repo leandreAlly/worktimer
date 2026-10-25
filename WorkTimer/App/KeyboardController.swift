@@ -22,12 +22,18 @@ import AppKit
 /// | 1 2 3 · 4  | Presets · ∞   |                    |           |               |
 /// | C          | Custom        |                    |           |               |
 /// | D M L      |               |                    |           | Choose outcome|
+/// | ⌘\         | Full → compact → mini → full (any state)                      |
+///
+/// The floating compact/mini panel only takes ⌘\ and Space: it has no text
+/// field or review form, so the other keys would act on things it can't show.
 final class KeyboardController {
     private let ui: UIModel
+    private let modes: WindowModes?
     private var monitor: Any?
 
-    init(ui: UIModel) {
+    init(ui: UIModel, modes: WindowModes? = nil) {
         self.ui = ui
+        self.modes = modes
     }
 
     func install() {
@@ -39,8 +45,10 @@ final class KeyboardController {
             // thread here, so passing it in is safe.
             nonisolated(unsafe) let event = event
             let consumed = MainActor.assumeIsolated {
-                guard let self, self.isMainWindow(event.window) else { return false }
-                return self.handle(event)
+                guard let self else { return false }
+                let inPanel = self.modes?.isPanel(event.window) ?? false
+                guard inPanel || self.isMainWindow(event.window) else { return false }
+                return self.handle(event, inPanel: inPanel)
             }
             return consumed ? nil : event  // returning nil swallows the key
         }
@@ -53,14 +61,15 @@ final class KeyboardController {
     }
 
     /// Translate the AppKit event into a plain `KeyPress` and act on it.
-    private func handle(_ event: NSEvent) -> Bool {
+    private func handle(_ event: NSEvent, inPanel: Bool) -> Bool {
         let press = KeyPress(
             key: event.charactersIgnoringModifiers?.lowercased() ?? "",
             keyCode: event.keyCode,
             modifiers: event.modifierFlags.intersection([.command, .option, .control, .shift]),
             isKeyUp: event.type == .keyUp,
             isRepeat: event.type == .keyDown && event.isARepeat,
-            isEditingText: event.window?.firstResponder is NSTextView
+            isEditingText: event.window?.firstResponder is NSTextView,
+            isInPanel: inPanel
         )
         if press.isEditingText && press.keyCode == KeyPress.escape && press.modifiers.isEmpty {
             // Esc leaves the field so Space and the letter keys work again.
@@ -76,6 +85,15 @@ final class KeyboardController {
         if press.isKeyUp {
             if press.key == "r" { ui.setHolding(false) }
             return false
+        }
+
+        if press.key == "\\" && press.modifiers == .command {
+            modes?.cycle()
+            return true
+        }
+        if press.isInPanel {
+            guard press.key == " ", press.modifiers.isEmpty else { return false }
+            return ui.engine.togglePause()
         }
 
         if press.isReturn && press.modifiers == .command {
@@ -123,6 +141,8 @@ struct KeyPress {
     var isKeyUp = false
     var isRepeat = false
     var isEditingText = false
+    /// Typed in the floating compact/mini panel rather than the main window.
+    var isInPanel = false
 
     /// Return or the keypad's Enter.
     var isReturn: Bool { keyCode == 36 || keyCode == 76 }
