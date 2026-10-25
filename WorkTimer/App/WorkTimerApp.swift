@@ -14,12 +14,17 @@ struct WorkTimerApp: App {
     @State private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-                // Makes the engine available to any view via
-                // `@Environment(TimerEngine.self)`.
+        // `Window` (not `WindowGroup`): WorkTimer has exactly one main window,
+        // so ⌘N can't spawn copies of the timer.
+        Window("WorkTimer", id: MainWindow.id) {
+            RootView()
+                // Makes these available to any view via `@Environment(...)`.
                 .environment(model.engine)
+                .environment(model.ui)
         }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(MainWindow.size)
+        .windowResizability(.contentMinSize)
         .modelContainer(model.container)
     }
 }
