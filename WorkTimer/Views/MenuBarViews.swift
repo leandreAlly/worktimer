@@ -6,8 +6,9 @@
 import AppKit
 import SwiftUI
 
-/// The menu bar item: a marker and the time while a clock is running
-/// ("● 18:42"), otherwise just the timer glyph.
+/// The menu bar item: the flap glyph from the Logo board, with the time while
+/// a clock is running ("▯ 18:42"). Paused, time's up and breaks swap the flap
+/// for their own marker so the state shows without opening the menu.
 struct MenuBarLabel: View {
     let clock: MenuBarClock
     @AppStorage(AppSettings.showMenuBarTime) private var showTime = true
@@ -23,7 +24,7 @@ struct MenuBarLabel: View {
             }
             .accessibilityLabel("WorkTimer, \(glance.status.lowercased()), \(time)")
         } else {
-            Image(systemName: "timer")
+            Image(nsImage: MenuBarGlyph.flap)
                 .accessibilityLabel("WorkTimer")
         }
     }
@@ -34,8 +35,26 @@ struct MenuBarLabel: View {
 enum MenuBarGlyph {
     @MainActor private static var cache: [Glance.Marker: NSImage] = [:]
 
+    /// "Logo — The Flap" as an outlined 11 × 16 glyph: a rounded tile with
+    /// the split across its middle.
+    @MainActor static let flap: NSImage = {
+        let image = NSImage(size: NSSize(width: 11, height: 16), flipped: false) { _ in
+            NSColor.black.set()
+            let tile = NSBezierPath(roundedRect: NSRect(x: 0.75, y: 0.75, width: 9.5, height: 14.5),
+                                    xRadius: 1.75, yRadius: 1.75)
+            tile.lineWidth = 1.5
+            tile.stroke()
+            NSRect(x: 0, y: 7.25, width: 11, height: 1.5).fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "WorkTimer"
+        return image
+    }()
+
     @MainActor
     static func image(for marker: Glance.Marker) -> NSImage {
+        if marker == .live { return flap }
         if let image = cache[marker] { return image }
         let image = NSImage(size: NSSize(width: 7, height: 14), flipped: false) { rect in
             NSColor.black.setFill()
