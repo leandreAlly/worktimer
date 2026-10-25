@@ -15,10 +15,15 @@ You need Xcode (15 or later) installed in `/Applications`.
 
 1. Open `WorkTimer.xcodeproj`.
 2. Choose **Product › Scheme › Edit Scheme… › Run › Build Configuration ›
-   Release** (or keep Debug while developing).
-3. **Product › Build** (⌘B), then **Product › Show Build Folder in Finder**
-   and open `Products/Release/WorkTimer.app`.
-4. Drag `WorkTimer.app` into `/Applications`.
+   Release**.
+3. **Product › Build** (⌘B).
+4. Xcode doesn't put the app in the project folder. It builds into its own
+   DerivedData folder:
+   `~/Library/Developer/Xcode/DerivedData/WorkTimer-<random>/Build/Products/Release/WorkTimer.app`.
+   To get there, use **Product › Show Build Folder in Finder**, which opens the
+   `Build` folder, then open **Products › Release**.
+5. Quit any running WorkTimer, then drag `WorkTimer.app` into `/Applications`.
+6. Set the Build Configuration back to **Debug** for everyday development.
 
 ### From Terminal
 
