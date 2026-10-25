@@ -88,8 +88,11 @@ struct ReadyView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Time commitment")
+            // When space is short the choices keep their size and the
+            // "ends at" text on the right gives way instead.
+            .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: 12)
 
             // Re-render once a minute so "ends at" stays true while you think.
             TimelineView(.everyMinute) { context in
@@ -107,6 +110,7 @@ struct ReadyView: View {
                 .font(.mono(12))
                 .tracking(0.24)
                 .foregroundStyle(Palette.mute)
+                .lineLimit(1)
             }
         }
         .padding(.top, 14)
@@ -186,6 +190,7 @@ private struct CustomMinutesField: View {
             Text("min")
                 .font(.system(size: 13))
                 .foregroundStyle(Palette.mute)
+                .fixedSize()
         }
     }
 }

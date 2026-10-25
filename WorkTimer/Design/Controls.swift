@@ -124,6 +124,9 @@ struct UnderlineChoice<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label()
+                // Never wrap ("Custo / m"): a choice keeps its natural width.
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(isSelected ? Palette.paper : Palette.mute)
                 .padding(.horizontal, 12)
                 .frame(minWidth: 52, minHeight: 44)
