@@ -17,16 +17,21 @@ enum MainWindow {
 /// floating above other windows, and where the traffic lights sit.
 struct WindowConfigurator: NSViewRepresentable {
     var floatOnTop: Bool
+    /// The fixed frame size; the History window uses its own.
+    var size = MainWindow.size
 
     func makeNSView(context: Context) -> NSView { TrackingView() }
 
     func updateNSView(_ view: NSView, context: Context) {
-        (view as? TrackingView)?.floatOnTop = floatOnTop
+        guard let view = view as? TrackingView else { return }
+        view.size = size
+        view.floatOnTop = floatOnTop
     }
 
     /// Applies the settings whenever it joins a window or they change.
     final class TrackingView: NSView {
         var floatOnTop = false { didSet { configure() } }
+        var size = MainWindow.size
         private var observers: [NSObjectProtocol] = []
 
         override func viewDidMoveToWindow() {
@@ -54,12 +59,11 @@ struct WindowConfigurator: NSViewRepresentable {
             positionTrafficLights()
         }
 
-        /// The design is a fixed 880 × 560 composition. SwiftUI would add the
+        /// The design is a fixed composition (880 × 560 for the main window). SwiftUI would add the
         /// hidden title bar's height on top, so the frame is set here directly
         /// and resizing is turned off. The title bar is 28 pt on macOS 14–15
         /// and 32 pt later, which is why it can't just be subtracted in SwiftUI.
         private func lockSize(_ window: NSWindow) {
-            let size = MainWindow.size
             window.styleMask.remove(.resizable)
             window.minSize = size
             window.maxSize = size

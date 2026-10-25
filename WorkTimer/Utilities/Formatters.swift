@@ -25,6 +25,17 @@ enum Format {
             : String(format: "%d:%02d", m, s)
     }
 
+    /// Totals in History: "2h 14m", "2h", "45m", "0m".
+    static func hoursMinutes(_ seconds: Int) -> String {
+        let minutes = max(0, seconds) / 60
+        let h = minutes / 60, m = minutes % 60
+        switch (h, m) {
+        case (0, _): return "\(m)m"
+        case (_, 0): return "\(h)h"
+        default: return "\(h)h \(m)m"
+        }
+    }
+
     /// Time of day in the user's own style ("3:47 PM" or "15:47").
     static func timeOfDay(_ date: Date) -> String {
         timeFormatter.string(from: date)

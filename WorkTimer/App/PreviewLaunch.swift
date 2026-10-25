@@ -42,6 +42,42 @@ enum PreviewLaunch {
         UserDefaults.standard.string(forKey: "WTPreviewMode") == "menu"
     }
 
+    /// `-WTPreviewMode history` opens the History window at launch.
+    static var opensHistory: Bool {
+        UserDefaults.standard.string(forKey: "WTPreviewMode") == "history"
+    }
+
+    /// A believable week of sessions for the History window, written only to
+    /// the preview's in-memory database.
+    static func sampleHistory(now: Date = .now) -> [SessionRecord] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: now)
+        // (days ago, start hour, minute, task, planned, focused minutes, outcome, note)
+        let rows: [(Int, Int, Int, String, Int, Int, SessionOutcome?, String)] = [
+            (0, 9, 5, "Implement checkout address validation", 50, 50, .done, "Postcode rules for UK and NL"),
+            (0, 10, 10, "Review pull requests", 25, 18, .continueLater, ""),
+            (0, 11, 0, "Write release notes", 25, 27, .done, ""),
+            (1, 9, 30, "Refactor payment service", 90, 90, .done, "Split the adapter from the client"),
+            (1, 14, 0, "Explore Swift Charts", 0, 42, nil, ""),
+            (2, 10, 0, "Fix flaky login test", 25, 12, .continueLater, "Timing issue in the mock clock"),
+            (3, 9, 0, "Design review prep", 50, 50, .done, ""),
+            (3, 13, 30, "Inbox zero", 25, 25, nil, ""),
+            (5, 15, 0, "Quarterly planning", 90, 64, .continueLater, ""),
+            (6, 9, 15, "Implement checkout address validation", 50, 50, .continueLater, ""),
+        ]
+        return rows.compactMap { daysAgo, hour, minute, task, planned, focused, outcome, note in
+            guard let day = calendar.date(byAdding: .day, value: -daysAgo, to: today),
+                  let start = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
+                  start < now else { return nil }
+            let paused = focused > 20 ? 90 : 0
+            return SessionRecord(id: UUID(), task: task, plannedMinutes: planned, actualSeconds: focused * 60,
+                                 goalCompleted: planned > 0 && focused >= planned, startedAt: start,
+                                 endedAt: start.addingTimeInterval(TimeInterval(focused * 60 + paused)),
+                                 pausedSeconds: paused, pauseCount: paused > 0 ? 1 : 0,
+                                 outcome: outcome, note: note)
+        }
+    }
+
     @MainActor private static var menuPreviewWindow: NSWindow?
 
     @MainActor

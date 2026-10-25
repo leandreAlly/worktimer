@@ -85,6 +85,10 @@ struct MenuBarContent: View {
                 } else {
                     MenuRow("Full window", hint: "⌘\\") { modes.show(.full) }
                 }
+                MenuRow("History", hint: "⌘Y") {
+                    NSApp.activate()
+                    openWindow(id: HistoryWindow.id)
+                }
                 MenuDivider()
                 MenuRow("Quit WorkTimer", hint: "⌘Q") { NSApp.terminate(nil) }
             }

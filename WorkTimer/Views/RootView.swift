@@ -31,7 +31,12 @@ struct RootView: View {
         .preferredColorScheme(theme.colorScheme)
         // Lets the menu bar and notifications reopen this window after the
         // user has closed it.
-        .onAppear { modes.openMainWindow = { openWindow(id: MainWindow.id) } }
+        .onAppear {
+            modes.openMainWindow = { openWindow(id: MainWindow.id) }
+            #if DEBUG
+            if PreviewLaunch.opensHistory { openWindow(id: HistoryWindow.id) }
+            #endif
+        }
     }
 
     @ViewBuilder private var screen: some View {
@@ -51,6 +56,7 @@ struct RootView: View {
 private struct WindowHeader: View {
     @Environment(TimerEngine.self) private var engine
     @Environment(WindowModes.self) private var modes
+    @Environment(\.openWindow) private var openWindow
     @Binding var floatOnTop: Bool
 
     var body: some View {
@@ -67,6 +73,9 @@ private struct WindowHeader: View {
                                      label: floatOnTop ? "Keep on top (on)" : "Keep on top",
                                      isOn: floatOnTop) {
                         floatOnTop.toggle()
+                    }
+                    HeaderIconButton(systemImage: "chart.bar", label: "History (⌘Y)") {
+                        openWindow(id: HistoryWindow.id)
                     }
                     HeaderIconButton(systemImage: "arrow.down.right.and.arrow.up.left",
                                      label: "Compact mode (⌘\\)") {

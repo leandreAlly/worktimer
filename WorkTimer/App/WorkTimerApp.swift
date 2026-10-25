@@ -36,9 +36,20 @@ struct WorkTimerApp: App {
                     model.modes.cycle()
                 }
                 .keyboardShortcut("\\", modifiers: .command)
+                ShowHistoryButton()
                 Divider()
             }
         }
+
+        // History: a second, separate window, so it can sit beside the timer.
+        Window("History", id: HistoryWindow.id) {
+            HistoryView()
+                .environment(model.engine)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(HistoryWindow.size)
+        .windowResizability(.contentSize)
+        .modelContainer(model.container)
 
         // The menu bar item. Its label stays in the menu bar for as long as
         // the app runs, so closing the main window doesn't stop the timer.
@@ -53,5 +64,15 @@ struct WorkTimerApp: App {
         // `.window` shows our SwiftUI view in a popover-style panel instead of
         // a plain menu.
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// View › Show History (⌘Y). A view, because only views can read SwiftUI's
+/// `openWindow` action from the environment.
+private struct ShowHistoryButton: View {
+    @Environment(\.openWindow) private var openWindow
+    var body: some View {
+        Button("Show History") { openWindow(id: HistoryWindow.id) }
+            .keyboardShortcut("y", modifiers: .command)
     }
 }

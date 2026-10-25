@@ -74,8 +74,14 @@ final class AppModel {
             effects = NoTimerEffects()
         }
 
+        let sessionStore = SessionStore(context: container.mainContext)
+        #if DEBUG
+        if PreviewLaunch.requestedState != nil {
+            PreviewLaunch.sampleHistory().forEach(sessionStore.save)
+        }
+        #endif
         engine = TimerEngine(
-            recorder: SessionStore(context: container.mainContext),
+            recorder: sessionStore,
             stateStore: stateStore,
             effects: effects,
             scheduler: TaskWakeScheduler()

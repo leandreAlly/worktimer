@@ -59,6 +59,13 @@ final class WorkSession {
         note = record.note
     }
 
+    /// The row as plain values; History keeps one to undo a delete.
+    var record: SessionRecord {
+        SessionRecord(id: id, task: task, plannedMinutes: plannedMinutes, actualSeconds: actualSeconds,
+                      goalCompleted: goalCompleted, startedAt: startedAt, endedAt: endedAt,
+                      pausedSeconds: pausedSeconds, pauseCount: pauseCount, outcome: outcome, note: note)
+    }
+
     var outcome: SessionOutcome? { outcomeRaw.flatMap(SessionOutcome.init(rawValue:)) }
     var isOpenEnded: Bool { plannedMinutes == 0 }
 
