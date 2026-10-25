@@ -68,9 +68,85 @@ final class WindowModes {
         }
     }
 
-    func cycle() { show(mode.next) }
+    func cycle() {
+        guard !isPresenting else { return }
+        show(mode.next)
+    }
+
+    // MARK: Show / hide from anywhere
+
+    /// ⌃⌥Space: hide WorkTimer if it's showing, otherwise bring back whichever
+    /// size was in use (full window, compact or mini).
+    func toggleFromAnywhere() {
+        if isPresenting {
+            endPresentation()
+            return
+        }
+        switch mode {
+        case .full:
+            if NSApp.isActive, mainWindow?.isVisible == true {
+                NSApp.hide(nil)
+            } else {
+                showMainWindow()
+            }
+        case .compact, .mini:
+            if panel?.isVisible == true {
+                panel?.orderOut(nil)
+            } else {
+                showPanel(size: mode.panelSize)
+            }
+        }
+    }
+
+    // MARK: Presentation
+
+    /// "Presentation" artboard: the clock alone, filling the screen.
+    private(set) var isPresenting = false
+    @ObservationIgnored var makePresentationContent: (() -> AnyView)?
+    @ObservationIgnored private var presentationWindow: NSWindow?
+
+    func togglePresentation() {
+        isPresenting ? endPresentation() : startPresentation()
+    }
+
+    func startPresentation() {
+        guard !isPresenting,
+              let screen = mainWindow?.screen ?? panel?.screen ?? NSScreen.main,
+              let content = makePresentationContent?() else { return }
+        isPresenting = true
+        let window = PresentationWindow(contentRect: screen.frame, styleMask: [.borderless],
+                                        backing: .buffered, defer: false)
+        window.identifier = NSUserInterfaceItemIdentifier(PresentationWindow.id)
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: content)
+        window.setFrame(screen.frame, display: true)
+        presentationWindow = window
+
+        // The menu bar and Dock slide away, and come back if the pointer
+        // touches their edge, as in a full-screen app.
+        NSApp.presentationOptions = [.autoHideMenuBar, .autoHideDock]
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        mainWindow?.orderOut(nil)
+        panel?.orderOut(nil)
+    }
+
+    func endPresentation() {
+        guard isPresenting else { return }
+        closePresentation()
+        show(mode)
+    }
+
+    private func closePresentation() {
+        guard isPresenting else { return }
+        isPresenting = false
+        presentationWindow?.orderOut(nil)
+        presentationWindow = nil
+        NSApp.presentationOptions = []
+    }
 
     func show(_ newMode: Mode) {
+        closePresentation()
         mode = newMode
         switch newMode {
         case .full:
@@ -84,6 +160,7 @@ final class WindowModes {
 
     /// Bring the full window forward from anywhere (menu bar, notification).
     func showMainWindow() {
+        closePresentation()
         if mode != .full {
             mode = .full
             panel?.orderOut(nil)
@@ -106,18 +183,25 @@ final class WindowModes {
 
     // MARK: Floating
 
-    /// The small windows float above other apps unless unpinned.
+    /// Settings › Float above other windows. One setting for the main window
+    /// and the small ones; the pin buttons in both change it.
     var panelFloats: Bool {
         get {
             access(keyPath: \.panelFloats)
-            return defaults.object(forKey: AppSettings.compactFloatOnTop) as? Bool ?? true
+            return defaults.bool(forKey: AppSettings.floatOnTop)
         }
         set {
             withMutation(keyPath: \.panelFloats) {
-                defaults.set(newValue, forKey: AppSettings.compactFloatOnTop)
+                defaults.set(newValue, forKey: AppSettings.floatOnTop)
             }
             panel?.level = newValue ? .floating : .normal
         }
+    }
+
+    /// Called when the setting changes elsewhere (Settings, the main pin).
+    func floatingSettingChanged() {
+        withMutation(keyPath: \.panelFloats) {}
+        panel?.level = panelFloats ? .floating : .normal
     }
 
     // MARK: Panel
@@ -153,6 +237,15 @@ final class WindowModes {
         panel.hasBeenPlaced = panel.frame.size != .zero && panel.frame.width > 1
         return panel
     }
+}
+
+/// The borderless window presentation mode draws into.
+final class PresentationWindow: NSWindow {
+    static let id = "presentation"
+    // Borderless windows can't become key by default; without key status the
+    // Esc and Space keys wouldn't reach it.
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
 
 /// A borderless, see-through window that SwiftUI draws the rounded card into.

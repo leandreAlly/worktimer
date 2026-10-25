@@ -36,6 +36,16 @@ final class TimerEngine {
     static let allowedMinutes = 1...600
     static let defaultBreakMinutes = 5
 
+    // MARK: Settings
+    // Set by the app from Settings; tests flip them directly.
+
+    /// Settings › Show overtime after time is up. Off: reaching zero ends the
+    /// session at its commitment (chime, saved) instead of counting on.
+    @ObservationIgnored var countsOvertime = true
+    /// Settings › Ask for a review when a session ends. Off: a finished
+    /// session is saved without an outcome and the timer returns to Ready.
+    @ObservationIgnored var asksForReview = true
+
     // MARK: Observed state
 
     private(set) var state: TimerState
@@ -171,7 +181,7 @@ final class TimerEngine {
             }
             run.endedAt = clock.now
             log(&run)
-            transition(to: .review(run))
+            endSession(run)
             return true
         default:
             return false
@@ -268,7 +278,7 @@ final class TimerEngine {
 
             run.hitGoal = true
             run.endedAt = clock.now.addingTimeInterval(-late)
-            if late <= Self.lateDeadlineGrace {
+            if late <= Self.lateDeadlineGrace && countsOvertime {
                 // Seen live: save now (so it's never lost), keep the clock
                 // running for overtime, chime.
                 log(run, worked: planned)
@@ -277,12 +287,15 @@ final class TimerEngine {
                 transition(to: .timeUp(run))
                 effects.playChime(for: .workTimeUp(task: run.task))
             } else {
-                // Nobody was watching: credit exactly the planned time.
+                // Nobody was watching, or overtime is off: credit exactly the
+                // planned time.
+                let seenLive = late <= Self.lateDeadlineGrace
                 run.workedBefore = planned
                 run.runningSince = nil
                 log(&run)
-                notice = .completedWhileAway
-                transition(to: .review(run))
+                notice = seenLive ? .timeUp : .completedWhileAway
+                endSession(run)
+                if seenLive { effects.playChime(for: .workTimeUp(task: run.task)) }
             }
 
         case .timeUp(let run) where overtime(run) >= Self.maximumOvertime:
@@ -290,7 +303,7 @@ final class TimerEngine {
             run.workedBefore = TimeInterval(run.plannedSeconds) + Self.maximumOvertime
             run.endedAt = clock.now
             log(&run)
-            transition(to: .review(run))
+            endSession(run)
 
         case .onBreak(let breakRun):
             let late = breakElapsed(breakRun) - TimeInterval(breakRun.plannedSeconds)
@@ -464,6 +477,12 @@ final class TimerEngine {
     }
 
     // MARK: - Private: transitions and side effects
+
+    /// A logged session is over: on to Review, or straight back to Ready when
+    /// reviews are turned off (the record is already saved, with no outcome).
+    private func endSession(_ run: WorkRun) {
+        transition(to: asksForReview ? .review(run) : .ready)
+    }
 
     /// The only place `state` is assigned after init.
     private func transition(to newState: TimerState) {

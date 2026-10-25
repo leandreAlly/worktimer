@@ -60,7 +60,7 @@ struct FocusView: View {
             .frame(width: 590)
             .padding(.top, 10)
 
-            controls(state)
+            FocusControls(state: state)
                 .padding(.top, 34)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -153,11 +153,17 @@ struct FocusView: View {
             EmptyView()
         }
     }
+}
 
-    // MARK: Controls (only the ones that apply to this state)
+/// The buttons under the clock: only the ones that apply to this state.
+/// Shared by the main window and presentation mode.
+struct FocusControls: View {
+    let state: TimerState
 
-    @ViewBuilder
-    private func controls(_ state: TimerState) -> some View {
+    @Environment(TimerEngine.self) private var engine
+    @Environment(UIModel.self) private var ui
+
+    var body: some View {
         HStack(spacing: 8) {
             switch state {
             case .running(let run):
@@ -178,10 +184,16 @@ struct FocusView: View {
                 Button(run.isOpenEnded ? "Finish & log" : "Finish early") { engine.finish() }
                     .buttonStyle(GhostButtonStyle())
                     .help("Finish and log (⌘↵)")
-                HoldToResetButton(progress: ui.holdProgress,
-                                  onPress: ui.setHolding,
-                                  onAccessibilityActivate: { engine.discard() })
-                    .help("Hold for one second (or hold R) to discard this session")
+                if ui.holdToReset {
+                    HoldToResetButton(progress: ui.holdProgress,
+                                      onPress: ui.setHolding,
+                                      onAccessibilityActivate: { engine.discard() })
+                        .help("Hold for one second (or hold R) to discard this session")
+                } else {
+                    Button("Reset") { engine.discard() }
+                        .buttonStyle(GhostButtonStyle())
+                        .help("Discard this session without logging it (R)")
+                }
 
             case .timeUp:
                 Button { engine.finish() } label: { LabelWithKey(title: "Review session", key: "↵", onPrimary: true) }

@@ -28,6 +28,11 @@ struct WorkTimerApp: App {
         .windowResizability(.contentMinSize)
         .modelContainer(model.container)
         .commands {
+            // WorkTimer › Settings… (⌘,) opens our own Settings window.
+            CommandGroup(replacing: .appSettings) {
+                OpenWindowButton(title: "Settings…", windowID: SettingsWindow.id)
+                    .keyboardShortcut(",", modifiers: .command)
+            }
             // View menu: lists the shortcut so it can be discovered. The key
             // itself is handled by KeyboardController, which also sees it in
             // the floating panel.
@@ -36,7 +41,13 @@ struct WorkTimerApp: App {
                     model.modes.cycle()
                 }
                 .keyboardShortcut("\\", modifiers: .command)
-                ShowHistoryButton()
+                Button(model.modes.isPresenting ? "Exit Presentation" : "Enter Presentation") {
+                    model.modes.togglePresentation()
+                }
+                .keyboardShortcut("f", modifiers: [.command, .control])
+                .disabled(!model.modes.isPresenting && !model.engine.state.isTiming)
+                OpenWindowButton(title: "Show History", windowID: HistoryWindow.id)
+                    .keyboardShortcut("y", modifiers: .command)
                 Divider()
             }
         }
@@ -50,6 +61,16 @@ struct WorkTimerApp: App {
         .defaultSize(HistoryWindow.size)
         .windowResizability(.contentSize)
         .modelContainer(model.container)
+
+        // Settings, styled like the rest of the app. A plain `Window` rather
+        // than SwiftUI's `Settings` scene, so it gets the same custom header.
+        Window("Settings", id: SettingsWindow.id) {
+            SettingsView(hotKeyAvailable: model.hotKey != nil)
+                .environment(model.ui)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(SettingsWindow.size)
+        .windowResizability(.contentSize)
 
         // The menu bar item. Its label stays in the menu bar for as long as
         // the app runs, so closing the main window doesn't stop the timer.
@@ -67,12 +88,14 @@ struct WorkTimerApp: App {
     }
 }
 
-/// View › Show History (⌘Y). A view, because only views can read SwiftUI's
-/// `openWindow` action from the environment.
-private struct ShowHistoryButton: View {
+/// A menu command that opens one of the app's windows. A view, because only
+/// views can read SwiftUI's `openWindow` action from the environment.
+private struct OpenWindowButton: View {
+    let title: String
+    let windowID: String
     @Environment(\.openWindow) private var openWindow
+
     var body: some View {
-        Button("Show History") { openWindow(id: HistoryWindow.id) }
-            .keyboardShortcut("y", modifiers: .command)
+        Button(title) { openWindow(id: windowID) }
     }
 }

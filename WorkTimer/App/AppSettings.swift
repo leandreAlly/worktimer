@@ -17,13 +17,27 @@ enum AppSettings {
     static let notifyWhenDone = "notifyWhenDone"
     static let endChime = "endChime"
     static let showMenuBarTime = "showMenuBarTime"
-    static let compactFloatOnTop = "compactFloatOnTop"
+    static let numeralStyle = "numeralStyle"
+    /// The three duration presets, as "25,50,90".
+    static let presets = "presets"
+    /// Duration chosen at launch: "last" or an encoded choice like "preset:25".
+    static let startDuration = "startDuration"
+    static let showOvertime = "showOvertime"
+    static let holdToReset = "holdToReset"
+    static let askForReview = "askForReview"
 
     /// Values used until the user changes them. `register` doesn't write
     /// anything to disk; it only answers reads of keys that were never set.
     static func registerDefaults(in defaults: UserDefaults) {
         defaults.register(defaults: [
             animateDigits: true,
+            floatOnTop: true,
+            numeralStyle: NumeralStyle.flap.rawValue,
+            presets: "25,50,90",
+            startDuration: "last",
+            showOvertime: true,
+            holdToReset: true,
+            askForReview: true,
             notifyWhenDone: true,
             endChime: EndChime.softBell.rawValue,
             showMenuBarTime: true,
@@ -43,6 +57,11 @@ enum ThemeChoice: String, CaseIterable {
         case .light: .light
         }
     }
+}
+
+/// Settings › Appearance › Numerals: split-flap tiles, or bare digits.
+enum NumeralStyle: String, CaseIterable {
+    case flap, flat
 }
 
 /// Settings › Sound › End chime.

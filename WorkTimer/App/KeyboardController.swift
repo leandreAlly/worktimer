@@ -24,6 +24,9 @@ import AppKit
 /// | D M L      |               |                    |           | Choose outcome|
 /// | ⌘\         | Full → compact → mini → full (any state)                      |
 ///
+/// ⌃⌘F enters and leaves presentation mode. There, Esc leaves, Space pauses
+/// or resumes and ⌘↵ finishes.
+///
 /// The floating compact/mini panel only takes ⌘\ and Space: it has no text
 /// field or review form, so the other keys would act on things it can't show.
 final class KeyboardController {
@@ -47,8 +50,9 @@ final class KeyboardController {
             let consumed = MainActor.assumeIsolated {
                 guard let self else { return false }
                 let inPanel = self.modes?.isPanel(event.window) ?? false
-                guard inPanel || self.isMainWindow(event.window) else { return false }
-                return self.handle(event, inPanel: inPanel)
+                let inPresentation = event.window?.identifier?.rawValue == PresentationWindow.id
+                guard inPanel || inPresentation || self.isMainWindow(event.window) else { return false }
+                return self.handle(event, inPanel: inPanel, inPresentation: inPresentation)
             }
             return consumed ? nil : event  // returning nil swallows the key
         }
@@ -61,7 +65,7 @@ final class KeyboardController {
     }
 
     /// Translate the AppKit event into a plain `KeyPress` and act on it.
-    private func handle(_ event: NSEvent, inPanel: Bool) -> Bool {
+    private func handle(_ event: NSEvent, inPanel: Bool, inPresentation: Bool) -> Bool {
         let press = KeyPress(
             key: event.charactersIgnoringModifiers?.lowercased() ?? "",
             keyCode: event.keyCode,
@@ -69,7 +73,8 @@ final class KeyboardController {
             isKeyUp: event.type == .keyUp,
             isRepeat: event.type == .keyDown && event.isARepeat,
             isEditingText: event.window?.firstResponder is NSTextView,
-            isInPanel: inPanel
+            isInPanel: inPanel,
+            isInPresentation: inPresentation
         )
         if press.isEditingText && press.keyCode == KeyPress.escape && press.modifiers.isEmpty {
             // Esc leaves the field so Space and the letter keys work again.
@@ -87,6 +92,24 @@ final class KeyboardController {
             return false
         }
 
+        if press.key == "f" && press.modifiers == [.command, .control] {
+            guard let modes, modes.isPresenting || engine.state.isTiming else { return false }
+            modes.togglePresentation()
+            return true
+        }
+        if press.isInPresentation {
+            switch press.key {
+            case _ where press.keyCode == KeyPress.escape && press.modifiers.isEmpty:
+                modes?.endPresentation()
+            case " " where press.modifiers.isEmpty:
+                return ui.engine.togglePause()
+            case _ where press.isReturn && press.modifiers == .command:
+                ui.primaryAction()
+            default:
+                return false
+            }
+            return true
+        }
         if press.key == "\\" && press.modifiers == .command {
             modes?.cycle()
             return true
@@ -143,6 +166,8 @@ struct KeyPress {
     var isEditingText = false
     /// Typed in the floating compact/mini panel rather than the main window.
     var isInPanel = false
+    /// Typed in presentation mode.
+    var isInPresentation = false
 
     /// Return or the keypad's Enter.
     var isReturn: Bool { keyCode == 36 || keyCode == 76 }

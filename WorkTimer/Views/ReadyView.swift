@@ -62,7 +62,7 @@ struct ReadyView: View {
         @Bindable var ui = ui
         return HStack {
             HStack(spacing: 4) {
-                ForEach(Array(UIModel.presets.enumerated()), id: \.offset) { index, minutes in
+                ForEach(Array(ui.presets.enumerated()), id: \.offset) { index, minutes in
                     UnderlineChoice(isSelected: ui.duration == .preset(minutes)) {
                         ui.choosePreset(at: index)
                     } label: {

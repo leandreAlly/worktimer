@@ -42,9 +42,18 @@ enum PreviewLaunch {
         UserDefaults.standard.string(forKey: "WTPreviewMode") == "menu"
     }
 
-    /// `-WTPreviewMode history` opens the History window at launch.
-    static var opensHistory: Bool {
-        UserDefaults.standard.string(forKey: "WTPreviewMode") == "history"
+    /// `-WTPreviewMode history` or `settings` opens that window at launch.
+    static var extraWindowID: String? {
+        switch UserDefaults.standard.string(forKey: "WTPreviewMode") {
+        case "history": HistoryWindow.id
+        case "settings": SettingsWindow.id
+        default: nil
+        }
+    }
+
+    /// `-WTPreviewMode presentation` starts in presentation mode.
+    static var startsPresentation: Bool {
+        UserDefaults.standard.string(forKey: "WTPreviewMode") == "presentation"
     }
 
     /// A believable week of sessions for the History window, written only to

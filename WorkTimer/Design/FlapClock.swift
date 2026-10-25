@@ -74,6 +74,22 @@ struct FlapMetrics {
             : FlapMetrics(tileWidth: 128, tileHeight: 204, fontSize: 178, colonSize: 13, colonGap: 40, colonPadding: 10)
     }
 
+    /// Presentation mode: 280 × 440 tiles at 388 pt on the 1440 × 900
+    /// artboard, scaled to the actual screen. Hours use narrower tiles so five
+    /// of them fit.
+    static func presentation(scale: CGFloat, long: Bool) -> FlapMetrics {
+        let base = long
+            ? FlapMetrics(tileWidth: 200, tileHeight: 314, fontSize: 277, cornerRadius: 12, hinge: 3,
+                          colonSize: 19, colonGap: 64, colonPadding: 16, spacing: 13)
+            : FlapMetrics(tileWidth: 280, tileHeight: 440, fontSize: 388, cornerRadius: 14, hinge: 3,
+                          colonSize: 26, colonGap: 90, colonPadding: 22, spacing: 18)
+        return FlapMetrics(tileWidth: base.tileWidth * scale, tileHeight: base.tileHeight * scale,
+                           fontSize: base.fontSize * scale, cornerRadius: base.cornerRadius * scale,
+                           hinge: max(2, base.hinge * scale), colonSize: base.colonSize * scale,
+                           colonGap: base.colonGap * scale, colonPadding: base.colonPadding * scale,
+                           spacing: base.spacing * scale)
+    }
+
     /// The compact floating window and menu bar popover: 44 × 68 tiles.
     static func compact(long: Bool) -> FlapMetrics {
         long
@@ -89,12 +105,15 @@ private struct FlapTile: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(AppSettings.animateDigits) private var animateDigits = true
+    @AppStorage(AppSettings.numeralStyle) private var style = NumeralStyle.flap
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous)
+        // Settings › Numerals › Flat: the same digits and spacing, no tiles.
+        let flap = style == .flap
         ZStack {
-            shape.fill(mood.tile)
-            if mood.sheen {
+            shape.fill(flap ? mood.tile : .clear)
+            if mood.sheen && flap {
                 // The upper flap catches a little light.
                 VStack(spacing: 0) {
                     Palette.flapSheen.frame(height: metrics.tileHeight / 2)
@@ -109,13 +128,15 @@ private struct FlapTile: View {
                 .id(character)
                 .transition(.asymmetric(insertion: .settle, removal: .identity))
             // The hinge: a thin cut in the ground color across the middle.
-            Rectangle()
-                .fill(Palette.ground)
-                .frame(height: metrics.hinge)
+            if flap {
+                Rectangle()
+                    .fill(Palette.ground)
+                    .frame(height: metrics.hinge)
+            }
         }
         .frame(width: metrics.tileWidth, height: metrics.tileHeight)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(Palette.flapBorder, lineWidth: 1))
+        .overlay(shape.strokeBorder(flap ? Palette.flapBorder : .clear, lineWidth: 1))
         // The design's settle: 260 ms, cubic-bezier(.2,.7,.2,1).
         .animation(reduceMotion || !animateDigits ? nil : .timingCurve(0.2, 0.7, 0.2, 1, duration: 0.26),
                    value: character)

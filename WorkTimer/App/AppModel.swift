@@ -18,6 +18,8 @@ final class AppModel {
     let keyboard: KeyboardController
     let modes: WindowModes
     let menuBarClock: MenuBarClock
+    /// Nil if another app already owns ⌃⌥Space.
+    private(set) var hotKey: GlobalHotKey?
 
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
@@ -64,15 +66,7 @@ final class AppModel {
         }
 
         let modes = WindowModes()
-        let effects: TimerEffects
-        if useSystemEffects {
-            let system = SystemEffects()
-            // Clicking a "Time's up" banner brings the full window forward.
-            system.onOpen = { [weak modes] in modes?.showMainWindow() }
-            effects = system
-        } else {
-            effects = NoTimerEffects()
-        }
+        let effects = Self.makeEffects(real: useSystemEffects, modes: modes)
 
         let sessionStore = SessionStore(context: container.mainContext)
         #if DEBUG
@@ -101,12 +95,26 @@ final class AppModel {
                 .environment(modes))
         }
 
+        modes.makePresentationContent = { [engine, ui, modes] in
+            AnyView(PresentationView()
+                .environment(engine)
+                .environment(ui)
+                .environment(modes))
+        }
+
+        applySettings()
+        observe(.default, UserDefaults.didChangeNotification) { $0.applySettings() }
+        hotKey = GlobalHotKey { [weak modes] in modes?.toggleFromAnywhere() }
+
         observeSystemEvents()
 
         #if DEBUG
         if let mode = PreviewLaunch.windowMode {
             // After the main window exists, so there's something to hide.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [modes] in modes.show(mode) }
+        }
+        if PreviewLaunch.startsPresentation {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [modes] in modes.startPresentation() }
         }
         if PreviewLaunch.showsMenuContent {
             DispatchQueue.main.async { [engine, ui, modes] in
@@ -115,6 +123,26 @@ final class AppModel {
             }
         }
         #endif
+    }
+
+    /// Real notifications and chime, or silence for tests and previews.
+    private static func makeEffects(real: Bool, modes: WindowModes) -> TimerEffects {
+        guard real else { return NoTimerEffects() }
+        let system = SystemEffects()
+        // Clicking a "Time's up" banner brings the full window forward.
+        system.onOpen = { [weak modes] in modes?.showMainWindow() }
+        return system
+    }
+
+    /// Hand the Settings switches to the objects that act on them. Runs at
+    /// launch and whenever any setting changes.
+    private func applySettings() {
+        let settings = UserDefaults.standard
+        engine.countsOvertime = settings.bool(forKey: AppSettings.showOvertime)
+        engine.asksForReview = settings.bool(forKey: AppSettings.askForReview)
+        let hold = settings.bool(forKey: AppSettings.holdToReset)
+        if ui.holdToReset != hold { ui.holdToReset = hold }
+        modes.floatingSettingChanged()
     }
 
     /// Sleep, wake, quit and clock changes. The engine's numbers come from

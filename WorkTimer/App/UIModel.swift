@@ -24,8 +24,19 @@ final class UIModel {
         case done, more, later
     }
 
-    static let presets = [25, 50, 90]
+    static let defaultPresets = [25, 50, 90]
     static let reviewExtensions = [5, 15, 25]
+
+    /// Settings › Presets. Always three valid values (1–600 minutes).
+    var presets: [Int] {
+        didSet {
+            defaults.set(presets.map(String.init).joined(separator: ","), forKey: AppSettings.presets)
+            // A preset that no longer exists can't stay selected.
+            if case .preset(let minutes) = duration, !presets.contains(minutes) {
+                duration = .preset(presets[0])
+            }
+        }
+    }
 
     var task: String {
         didSet { defaults.set(task, forKey: AppSettings.lastTask) }
@@ -45,6 +56,9 @@ final class UIModel {
     /// (the C shortcut). A counter, so asking twice in a row still registers.
     var customFieldFocusRequest = 0
 
+    /// Settings › Reset needs a 1-second hold. Off: one click (or R) resets.
+    var holdToReset = true
+
     /// 0...1 while "Hold to reset" is held, by mouse or the R key.
     private(set) var holdProgress: Double = 0
 
@@ -56,8 +70,13 @@ final class UIModel {
     init(engine: TimerEngine, defaults: UserDefaults = .standard) {
         self.engine = engine
         self.defaults = defaults
+        let presets = Self.parsePresets(defaults.string(forKey: AppSettings.presets))
+        self.presets = presets
         task = defaults.string(forKey: AppSettings.lastTask) ?? ""
-        duration = Self.decode(defaults.string(forKey: AppSettings.lastDuration)) ?? .preset(25)
+        // Settings › Selected when the app opens: the last choice, or a fixed one.
+        let start = defaults.string(forKey: AppSettings.startDuration) ?? "last"
+        let startChoice = start == "last" ? defaults.string(forKey: AppSettings.lastDuration) : start
+        duration = Self.decode(startChoice, presets: presets) ?? .preset(presets[0])
         let storedCustom = defaults.integer(forKey: AppSettings.customMinutes)
         customMinutes = TimerEngine.allowedMinutes.contains(storedCustom) ? storedCustom : 30
     }
@@ -80,8 +99,8 @@ final class UIModel {
     }
 
     func choosePreset(at index: Int) {
-        guard Self.presets.indices.contains(index) else { return }
-        duration = .preset(Self.presets[index])
+        guard presets.indices.contains(index) else { return }
+        duration = .preset(presets[index])
     }
 
     func chooseCustom() {
@@ -144,6 +163,10 @@ final class UIModel {
 
     private func beginHold() {
         guard holdTask == nil, engine.state.phase == .paused else { return }
+        guard holdToReset else {
+            engine.discard()
+            return
+        }
         withAnimation(.linear(duration: 1)) { holdProgress = 1 }
         holdTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(1))
@@ -162,7 +185,14 @@ final class UIModel {
 
     // MARK: Persistence of the duration choice
 
-    private static func encode(_ choice: DurationChoice) -> String {
+    /// "25,50,90" → [25, 50, 90]; anything malformed falls back to the defaults.
+    static func parsePresets(_ string: String?) -> [Int] {
+        let values = (string ?? "").split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        guard values.count == 3, values.allSatisfy(TimerEngine.allowedMinutes.contains) else { return defaultPresets }
+        return values
+    }
+
+    static func encode(_ choice: DurationChoice) -> String {
         switch choice {
         case .preset(let minutes): "preset:\(minutes)"
         case .custom: "custom"
@@ -170,7 +200,7 @@ final class UIModel {
         }
     }
 
-    private static func decode(_ string: String?) -> DurationChoice? {
+    static func decode(_ string: String?, presets: [Int]) -> DurationChoice? {
         switch string {
         case "custom": return .custom
         case "none": return .noLimit

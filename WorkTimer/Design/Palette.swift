@@ -52,6 +52,14 @@ enum Palette {
     static let outline = Color(dark: 0x4A4946, light: 0xA9A6A0)
     static let disabledFill = Color(dark: 0x1E1E21, light: 0xDCD9D2)
     static let toggleOnFill = Color(dark: 0x1E1E21, light: 0xDCD9D2)
+
+    // Settings ("Preferences" artboard): a slightly raised window with cards.
+    static let settingsGround = Color(dark: 0x1A1A1C, light: 0xF3F1EC)
+    static let settingsCard = Color(dark: 0x222225, light: 0xFAF9F6)
+    static let settingsHeaderRule = Color(dark: 0x262629, light: 0xDCD9D2)
+    static let control = Color(dark: 0x18181A, light: 0xECEAE4)          // fields, segmented track
+    static let segmentSelected = Color(dark: 0x3A3A3D, light: 0xDCD9D2)
+    static let switchOffTrack = Color(dark: 0x3A3A3D, light: 0xC9C6BF)
 }
 
 extension Color {

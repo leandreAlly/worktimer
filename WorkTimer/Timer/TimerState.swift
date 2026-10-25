@@ -46,6 +46,14 @@ enum TimerState: Codable, Equatable {
         }
     }
 
+    /// A clock is on screen: working, paused, in overtime or on a break.
+    var isTiming: Bool {
+        switch self {
+        case .running, .paused, .timeUp, .onBreak: true
+        case .ready, .review: false
+        }
+    }
+
     /// The work session in progress or under review, if any.
     var workRun: WorkRun? {
         switch self {

@@ -11,7 +11,7 @@ struct RootView: View {
     @Environment(WindowModes.self) private var modes
     @Environment(\.openWindow) private var openWindow
     @AppStorage(AppSettings.theme) private var theme = ThemeChoice.dark
-    @AppStorage(AppSettings.floatOnTop) private var floatOnTop = false
+    @AppStorage(AppSettings.floatOnTop) private var floatOnTop = true
 
     var body: some View {
         // The window's exact 880 × 560 frame is set by WindowConfigurator;
@@ -34,7 +34,7 @@ struct RootView: View {
         .onAppear {
             modes.openMainWindow = { openWindow(id: MainWindow.id) }
             #if DEBUG
-            if PreviewLaunch.opensHistory { openWindow(id: HistoryWindow.id) }
+            if let id = PreviewLaunch.extraWindowID { openWindow(id: id) }
             #endif
         }
     }
@@ -80,6 +80,9 @@ private struct WindowHeader: View {
                     HeaderIconButton(systemImage: "arrow.down.right.and.arrow.up.left",
                                      label: "Compact mode (⌘\\)") {
                         modes.show(.compact)
+                    }
+                    HeaderIconButton(systemImage: "slider.horizontal.3", label: "Settings (⌘,)") {
+                        openWindow(id: SettingsWindow.id)
                     }
                 }
             }
