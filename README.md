@@ -9,8 +9,26 @@ A minimalist focus timer for macOS. Commit to a task for a set time, watch
 it count down on split-flap digits, then review how it went. Everything
 stays on this Mac: no account, no sync, no network.
 
+<p align="center">
+  <img src="docs/screenshots/main.png" alt="WorkTimer ready to start a 60-minute session" width="720">
+</p>
+
 Built with Swift, SwiftUI, SwiftData, Swift Charts and UserNotifications.
 No third-party packages. Requires macOS 14 Sonoma or later.
+
+## Screenshots
+
+| Focusing | Presentation mode |
+|---|---|
+| <img src="docs/screenshots/focus.png" alt="Timer counting down on split-flap digits" width="420"> | <img src="docs/screenshots/presentation.png" alt="Full-screen presentation mode" width="420"> |
+
+| Compact window | Mini window | Menu bar |
+|---|---|---|
+| <img src="docs/screenshots/compact.png" alt="Compact timer window" width="300"> | <img src="docs/screenshots/mini.png" alt="Mini timer bar" width="300"> | <img src="docs/screenshots/menubar.png" alt="Menu bar dropdown with quick controls" width="220"> |
+
+| Settings |
+|---|
+| <img src="docs/screenshots/settings.png" alt="Settings window" width="420"> |
 
 ## Build and install
 
