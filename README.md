@@ -1,5 +1,10 @@
 # WorkTimer
 
+[![CI](https://github.com/leandreAlly/worktimer/actions/workflows/ci.yml/badge.svg)](https://github.com/leandreAlly/worktimer/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue)
+![Swift](https://img.shields.io/badge/Swift-5-orange)
+
 A minimalist focus timer for macOS. Commit to a task for a set time, watch
 it count down on split-flap digits, then review how it went. Everything
 stays on this Mac: no account, no sync, no network.
@@ -9,7 +14,12 @@ No third-party packages. Requires macOS 14 Sonoma or later.
 
 ## Build and install
 
-You need Xcode (15 or later) installed in `/Applications`.
+You need Xcode 27 or later installed in `/Applications` (the project file uses the Xcode 27 format).
+
+```sh
+git clone https://github.com/leandreAlly/worktimer.git
+cd worktimer
+```
 
 ### From Xcode
 
@@ -28,8 +38,6 @@ You need Xcode (15 or later) installed in `/Applications`.
 ### From Terminal
 
 ```sh
-cd ~/projects/WorkTimer
-
 # Build a Release copy into build/Release
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   xcodebuild -scheme WorkTimer -configuration Release \
@@ -127,3 +135,11 @@ Debug builds accept `-WTPreviewState <focusing|openended|long|paused|almostup|br
 and `-WTPreviewMode <compact|mini|menu|history|settings|presentation>` to open
 straight into a sample state with an in-memory database, for design checks.
 Release builds don't include this code.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+
+## License
+
+WorkTimer is released under the [MIT License](LICENSE). The bundled Inter Tight and JetBrains Mono fonts are under the SIL Open Font License; their licences are in `WorkTimer/Resources/Fonts/`.
