@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 110;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -424,5 +424,4 @@
 /* End XCConfigurationList section */
 	};
 	rootObject = 412AEE87308E2EE700CF314B /* Project object */;
-	validationLevel = 1;
 }

@@ -14,7 +14,7 @@ No third-party packages. Requires macOS 14 Sonoma or later.
 
 ## Build and install
 
-You need Xcode 27 or later installed in `/Applications` (the project file uses the Xcode 27 format).
+You need Xcode 16 or later installed in `/Applications`.
 
 ```sh
 git clone https://github.com/leandreAlly/worktimer.git
